@@ -132,3 +132,21 @@ router
   .patch('/profiles/:profileId/avatar', [ProfilesController, 'updateAvatar'])
   .as('profiles.updateAvatar')
   .use(middleware.auth())
+
+const FollowsController = () => import('#social/controllers/follows_controller')
+router
+  .post('/profiles/:followerId/follow/:followingId', [FollowsController, 'follow'])
+  .as('profiles.follow')
+  .use(middleware.auth())
+router
+  .post('/profiles/:followerId/unfollow/:followingId', [FollowsController, 'unfollow'])
+  .as('profiles.unfollow')
+  .use(middleware.auth())
+router
+  .get('/profiles/:followerId/is-following/:followingId', [FollowsController, 'isFollowing'])
+  .as('profiles.isFollowing')
+  .use(middleware.auth())
+router
+  .get('/profiles/:profileId/stats', [FollowsController, 'stats'])
+  .as('profiles.stats')
+  .use(middleware.auth())

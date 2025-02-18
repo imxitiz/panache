@@ -3,7 +3,8 @@ import useTranslate from '#common/ui/hooks/use_translate'
 import type Profile from '#social/models/profile'
 import { Camera, CheckIcon, Link, IdCard } from 'lucide-react'
 import React from 'react'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import axios from 'axios'
 import { EditProfileDialog } from './edit_profile_dialog'
 import { ImageCropper } from '../image_cropper'
 import { router } from '@inertiajs/react'
@@ -17,6 +18,10 @@ export function ProfileHeader({ profile }: { profile: Profile }) {
   const [isHovering, setIsHovering] = useState(false)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string>('')
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followersCount, setFollowersCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
+  const [followsYou, setFollowsYou] = useState(false)
   const { toast } = useToast()
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -65,6 +70,25 @@ export function ProfileHeader({ profile }: { profile: Profile }) {
       },
     })
   }
+
+  useEffect(() => {
+    axios
+      .get(`/profiles/${user.currentProfileId}/is-following/${profile.id}`)
+      .then((response: { data: { isFollowing: boolean } }) => {
+        setIsFollowing(response.data.isFollowing)
+      })
+    axios
+      .get(`/profiles/${profile.id}/stats`)
+      .then((response: { data: { followersCount: number; followingCount: number } }) => {
+        setFollowersCount(response.data.followersCount || 0)
+        setFollowingCount(response.data.followingCount || 0)
+      })
+    axios
+      .get(`/profiles/${profile.id}/is-following/${user.currentProfileId}`)
+      .then((response: { data: { isFollowing: boolean } }) => {
+        setFollowsYou(response.data.isFollowing)
+      })
+  }, [profile])
 
   return (
     <header>
@@ -119,13 +143,45 @@ export function ProfileHeader({ profile }: { profile: Profile }) {
                 {profile.displayName ? profile.displayName : `@${profile.username}`}
               </h2>
               {profile.id === user?.currentProfileId && <EditProfileDialog />}
+              {followsYou && (
+                <span className="text-sm text-gray-500 bg-gray-200 rounded-full px-2 py-1">
+                  {t('social.follows_you')}
+                </span>
+              )}
             </div>
             {profile.displayName && (
               <div className="flex items-center text-lg gap-x-2 text-neutral-600">
                 <span>@{profile.username}</span>
               </div>
             )}
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="flex items-center space-x-1">
+                <span className="font-semibold">{followersCount}</span>
+                <span>{t('social.followers')}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="font-semibold">{followingCount}</span>
+                <span>{t('social.following')}</span>
+              </div>
+            </div>
           </div>
+          <div className="ml-auto"></div>
+          {profile.id !== user?.currentProfileId && (
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+              onClick={async () => {
+                if (isFollowing) {
+                  await axios.post(`/profiles/${user?.currentProfileId}/unfollow/${profile.id}`)
+                  setIsFollowing(false)
+                } else {
+                  await axios.post(`/profiles/${user?.currentProfileId}/follow/${profile.id}`)
+                  setIsFollowing(true)
+                }
+              }}
+            >
+              {isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
+          )}
         </div>
         <div className="mt-4 space-y-2 text-sm text-neutral-600 border-t pt-4">
           {profile.bio && (
