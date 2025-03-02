@@ -13,7 +13,7 @@ export default class OTPNotification extends BaseMail {
   }
   async prepare() {
     this.message.to(this.user.email)
-    const html = renderToString(OtpEmail({ user: this.user }))
+    const html = renderToString(await OtpEmail({ user: this.user }))
     this.message.html(html)
   }
 }
